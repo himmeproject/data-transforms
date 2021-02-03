@@ -194,37 +194,53 @@
     <!-- Format nodes -->
     <xsl:template name="nodes">
         <xsl:for-each select="//tei:event">
-            <xsl:variable name="elevel" select="position()"/>
-            <xsl:variable name="eventTitle" select="string-join(tei:desc, ' ')"/>
+<!--            <xsl:variable name="elevel" select="(position() * position()) + 10"/>-->
+            <xsl:variable name="elevel" select="(position() * 10)"/>
+            <xsl:variable name="eventTitle" select="normalize-space(string-join(tei:desc, ' '))"/>
             <xsl:for-each select="tei:label">
                 <xsl:variable name="eventLabel">
                     <xsl:choose>
                         <xsl:when test="@type = 'event'">
                             <xsl:for-each select="following-sibling::tei:label">
                                 <xsl:variable name="type" select="concat(upper-case(substring(@type, 1, 1)), substring(@type, 2))"/>
-                                <xsl:value-of select="concat($type, ': ', .)"/>
+                                <xsl:value-of select="concat($type, ': ', normalize-space(.))"/>
                                 <xsl:if test="position() != last()"><xsl:text>&lt;br \\/&gt;</xsl:text></xsl:if>
                             </xsl:for-each>
                         </xsl:when>
                         <xsl:otherwise>
-                            <xsl:value-of
-                                select="concat(concat(upper-case(substring(@type, 1, 1)), substring(@type, 2)), .)"
-                            />
+                            <xsl:value-of select="concat(concat(upper-case(substring(@type, 1, 1)), substring(@type, 2)), .)"/>
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
                 <xsl:variable name="eventType" select="@type"/>
+                <xsl:variable name="start">
+                    <xsl:choose>
+                        <xsl:when test="local:startDate(tei:date) != ''">
+                            <xsl:value-of select="tokenize(local:startDate(tei:date), '-')[last()]"/>
+                        </xsl:when>
+                        <xsl:otherwise>0</xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
                 <xsl:variable name="end">
                     <xsl:choose>
                         <xsl:when test="local:endDate(tei:date) != ''">
-                            <xsl:value-of
-                                select="substring(tokenize(local:endDate(tei:date), '-')[last()], 1, 2)"
-                            />
+                            <xsl:value-of select="tokenize(local:endDate(tei:date), '-')[last()]"/>
                         </xsl:when>
-                        <xsl:when test="local:startDate(tei:date) != ''">
-                            <xsl:value-of
-                                select="substring(tokenize(local:startDate(tei:date), '-')[last()], 1, 2)"
-                            />
+                        <xsl:otherwise>0</xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="prevStart">
+                    <xsl:choose>
+                        <xsl:when test="local:startDate(preceding-sibling::*[1]/tei:date) != ''">
+                            <xsl:value-of select="tokenize(local:startDate(preceding-sibling::*[1]/tei:date), '-')[last()]"/>
+                        </xsl:when>
+                        <xsl:otherwise>0</xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="prevEnd">
+                    <xsl:choose>
+                        <xsl:when test="local:endDate(preceding-sibling::*[1]/tei:date) != ''">
+                            <xsl:value-of select="tokenize(local:endDate(preceding-sibling::*[1]/tei:date), '-')[last()]"/>
                         </xsl:when>
                         <xsl:otherwise>0</xsl:otherwise>
                     </xsl:choose>
@@ -232,29 +248,83 @@
                 <xsl:variable name="prev">
                     <xsl:choose>
                         <xsl:when test="local:startDate(preceding-sibling::*[1]/tei:date) != ''">
-                            <xsl:value-of
-                                select="substring(tokenize(local:startDate(preceding-sibling::*[1]/tei:date), '-')[last()], 1, 2)"
-                            />
+                            <xsl:value-of select="substring(tokenize(local:startDate(preceding-sibling::*[1]/tei:date), '-')[last()], 1, 2)"/>
                         </xsl:when>
                         <xsl:when test="local:endDate(preceding-sibling::*[1]/tei:date) != ''">
-                            <xsl:value-of
-                                select="substring(tokenize(local:endDate(preceding-sibling::*[1]/tei:date), '-')[last()], 1, 2)"
-                            />
+                            <xsl:value-of select="substring(tokenize(local:endDate(preceding-sibling::*[1]/tei:date), '-')[last()], 1, 2)"/>
                         </xsl:when>
                         <xsl:otherwise>0</xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
                 <xsl:variable name="level">
                     <xsl:choose>
-                        <xsl:when test="xs:integer($end) eq xs:integer($prev)">
-                            <xsl:value-of select="$elevel + .5"/>
+                        <xsl:when test="not(preceding-sibling::tei:label)"><xsl:value-of select="$elevel"/></xsl:when>
+                        <xsl:when test="$start != 0">
+                            <xsl:choose>
+                                <xsl:when test="$prevStart != 0">
+                                    <xsl:choose>
+                                        <xsl:when test="xs:integer($start) eq xs:integer($prevStart)">
+                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                        </xsl:when>
+                                        <xsl:when test="((xs:integer($start) - xs:integer($prevStart)) &lt; 50)">
+                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                        </xsl:when>
+                                        <xsl:when test="$prevEnd != 0">
+                                            <xsl:choose>
+                                                <xsl:when test="xs:integer($start) eq xs:integer($prevEnd)">
+                                                    <xsl:value-of select="$elevel + position() + 2"/>
+                                                </xsl:when>
+                                                <xsl:when test="((xs:integer($start) - xs:integer($prevEnd)) &lt; 50)">
+                                                    <xsl:value-of select="$elevel + position() + 2"/>
+                                                </xsl:when>
+                                                <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                            </xsl:choose>
+                                        </xsl:when>
+                                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                    </xsl:choose>
+                                </xsl:when>
+                                <xsl:when test="$prevEnd != 0">
+                                    <xsl:choose>
+                                        <xsl:when test="xs:integer($start) eq xs:integer($prevEnd)">
+                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                        </xsl:when>
+                                        <xsl:when test="((xs:integer($start) - xs:integer($prevEnd)) &lt; 50)">
+                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                        </xsl:when>
+                                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                    </xsl:choose>
+                                </xsl:when>
+                                <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                            </xsl:choose>
                         </xsl:when>
-                        <xsl:when test="xs:integer($end) lt xs:integer($prev)">
-                            <xsl:value-of select="$elevel + .5"/>
+                        <xsl:when test="$end != 0">
+                            <xsl:choose>
+                                <xsl:when test="$prevStart != 0">
+                                    <xsl:choose>
+                                        <xsl:when test="xs:integer($end) eq xs:integer($prevStart)">
+                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                        </xsl:when>
+                                        <xsl:when test="((xs:integer($end) - xs:integer($prevStart)) &lt; 50)">
+                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                        </xsl:when>
+                                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                    </xsl:choose>
+                                </xsl:when>
+                                <xsl:when test="$prevEnd != 0">
+                                    <xsl:choose>
+                                        <xsl:when test="xs:integer($end) eq xs:integer($prevEnd)">
+                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                        </xsl:when>
+                                        <xsl:when test="((xs:integer($end) - xs:integer($prevEnd)) &lt; 50)">
+                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                        </xsl:when>
+                                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                    </xsl:choose>
+                                </xsl:when>
+                                <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                            </xsl:choose>
                         </xsl:when>
-                        <xsl:otherwise>
-                            <xsl:value-of select="$elevel"/>
-                        </xsl:otherwise>
+                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
                 <xsl:choose>
@@ -262,20 +332,15 @@
                         <xsl:if test="tei:date[@notBefore] and tei:date[@notAfter]">
                             <nodes>
                                 <name><xsl:value-of select="$eventTitle"/></name>
-                                <recid><xsl:value-of
-                                        select="ancestor::tei:body/descendant::tei:idno[1]/text()"
-                                    /></recid>
+                                <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
                                 <label><xsl:value-of select="$eventLabel"/></label>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <date><xsl:value-of select="local:formatDate(tei:date/@notBefore)"
-                                    /></date>
+                                <date><xsl:value-of select="local:formatDate(tei:date/@notBefore)"/></date>
                                 <displayType>circa</displayType>
                                 <display>none</display>
                                 <position>start</position>
                                 <level><xsl:value-of select="$level"/></level>
-                                <id><xsl:value-of
-                                        select="replace(generate-id(tei:date/@notBefore), '\.', '')"
-                                    /></id>
+                                <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></id>
                             </nodes>
                             <nodes>
                                 <name><xsl:value-of select="$eventTitle"/></name>
@@ -285,419 +350,235 @@
                                 <label><xsl:value-of select="$eventLabel"/></label>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <date>
-                                    <xsl:variable name="start"
-                                        select="tokenize(local:formatDate(tei:date/@notBefore), '-')[last()]"/>
-                                    <xsl:variable name="end"
-                                        select="tokenize(local:formatDate(tei:date/@notAfter), '-')[last()]"/>
-                                    <xsl:variable name="diff"
-                                        select="((xs:double($end) - xs:double($start)) div 2) + xs:double($start)"/>
+                                    <xsl:variable name="start" select="tokenize(string(local:formatDate(tei:date/@notBefore)), '-')[last()]"/>
+                                    <xsl:variable name="end" select="tokenize(string(local:formatDate(tei:date/@notAfter)), '-')[last()]"/>
+                                    <xsl:variable name="diff" select="((xs:double($end) - xs:double($start)) div 2) + xs:double($start)"/>
                                     <xsl:value-of select="concat('01-01-', $diff)"/>
                                 </date>
                                 <displayType>circa</displayType>
                                 <display>point</display>
                                 <position>center</position>
                                 <level><xsl:value-of select="$level"/></level>
-                                <id><xsl:value-of
-                                        select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"
-                                    /></id>
+                                <id><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"/></id>
                             </nodes>, <nodes>
                                 <name><xsl:value-of select="$eventTitle"/></name>
-                                <recid><xsl:value-of
-                                        select="ancestor::tei:body/descendant::tei:idno[1]/text()"
-                                    /></recid>
+                                <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
                                 <label><xsl:value-of select="$eventLabel"/></label>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <date><xsl:value-of select="local:formatDate(tei:date/@notAfter)"
-                                    /></date>
+                                <date><xsl:value-of select="local:formatDate(tei:date/@notAfter)"/></date>
                                 <displayType>circa</displayType>
                                 <display>none</display>
                                 <position>end</position>
                                 <level><xsl:value-of select="$level"/></level>
-                                <id><xsl:value-of
-                                        select="replace(generate-id(tei:date/@notAfter), '\.', '')"
-                                    /></id>
+                                <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                             </nodes> ) </xsl:if>
                     </xsl:when>
                     <xsl:when test="tei:date[@when]">
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@when)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@when)"/></date>
                             <displayType>point</displayType>
                             <display>point</display>
                             <position>start</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@when), '\.', '')"/>
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@when), '\.', '')"/></id>
                         </nodes>
                     </xsl:when>
                     <xsl:when test="tei:date[@from] and tei:date[@to]">
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@from)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@from)"/></date>
                             <displayType>range</displayType>
                             <display>start</display>
                             <position>start</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@from), '\.', '')"/>
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></id>
                         </nodes>
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@to)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@to)"/></date>
                             <displayType>range</displayType>
                             <display>end</display>
                             <position>end</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"
-                                />
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></id>
                         </nodes>
                     </xsl:when>
                     <xsl:when test="tei:date[@notBefore] and tei:date[@notAfter]">
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@notBefore)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@notBefore)"/></date>
                             <displayType>between</displayType>
                             <display>start</display>
                             <position>start</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notBefore), '\.', '')"/>
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></id>
                         </nodes>
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@notAfter)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@notAfter)"/></date>
                             <displayType>between</displayType>
                             <display>end</display>
                             <position>end</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notAfter), '\.', '')"/>
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                         </nodes>
                     </xsl:when>
                     <xsl:when test="tei:date[@notBefore] and tei:date[@to]">
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@notBefore)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@notBefore)"/></date>
                             <displayType>before</displayType>
                             <display>none</display>
                             <position>start</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notBefore), '\.', '')"/>
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></id>
                         </nodes>
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@to)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@to)"/></date>
                             <displayType>before</displayType>
                             <display>end</display>
                             <position>end</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"
-                                />
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></id>
                         </nodes>
                     </xsl:when>
                     <xsl:when test="tei:date[@from] and tei:date[@notAfter]">
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@from)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@from)"/></date>
                             <displayType>after</displayType>
                             <display>start</display>
                             <position>start</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@from), '\.', '')"/>
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></id>
                         </nodes>
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@notAfter)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@notAfter)"/></date>
                             <displayType>after</displayType>
                             <display>none</display>
                             <position>end</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notAfter), '\.', '')"/>
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                         </nodes>
                     </xsl:when>
                     <xsl:when test="tei:date[@notAfter]">
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
                             <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@notAfter)"/>
+                                <xsl:variable name="date" select="tokenize(string(local:formatDate(tei:date/@notAfter)), '-')[last()]"/>
+                                <xsl:variable name="diff" select="((xs:double($date) - 200))"/>
+                                <xsl:value-of select="concat('01-01-', $diff)"/>
+                                <!--<xsl:value-of select="format-date(xs:date(local:formatDate(tei:date/@notAfter)) - xs:yearMonthDuration('P200Y'),'[M]-[D]-[Y]')"/>-->
                             </date>
+                            <displayType>none</displayType>
+                            <display>none</display>
+                            <position>start</position>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="concat(replace(generate-id(tei:date/@notAfter), '\.', ''),'c')"/></id>
+                        </nodes>
+                        <nodes>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@notAfter)"/></date>
                             <displayType>notAfter</displayType>
                             <display>end</display>
                             <position>end</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notAfter), '\.', '')"/>
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                         </nodes>
                     </xsl:when>
                     <xsl:when test="tei:date[@notBefore]">
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@notBefore)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@notBefore)"/></date>
                             <displayType>notBefore</displayType>
                             <display>start</display>
                             <position>start</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notBefore), '\.', '')"/>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/>
                             </id>
+                        </nodes>
+                        <nodes>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date>
+                                <xsl:variable name="date" select="tokenize(string(local:formatDate(tei:date/@notBefore)), '-')[last()]"/>
+                                <xsl:variable name="diff" select="((xs:double($date) + 200))"/>
+                                <xsl:value-of select="concat('01-01-', $diff)"/>
+                            </date>
+                            <displayType>notBefore</displayType>
+                            <display>none</display>
+                            <position>end</position>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''),'c')"/></id>
                         </nodes>
                     </xsl:when>
                     <xsl:when test="tei:date[@to]">
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@to)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@to)"/></date>
                             <displayType>to</displayType>
                             <display>end</display>
                             <position>end</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"
-                                />
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></id>
                         </nodes>
                     </xsl:when>
                     <xsl:when test="tei:date[@from]">
                         <nodes>
-                            <name>
-                                <xsl:value-of select="$eventTitle"/>
-                            </name>
-                            <recid>
-                                <xsl:value-of
-                                    select="ancestor::tei:body/descendant::tei:idno[1]/text()"/>
-                            </recid>
-                            <label>
-                                <xsl:value-of select="$eventLabel"/>
-                            </label>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
-                            <date>
-                                <xsl:value-of select="local:formatDate(tei:date/@from)"/>
-                            </date>
+                            <name><xsl:value-of select="$eventTitle"/></name>
+                            <recid><xsl:value-of select="ancestor::tei:body/descendant::tei:idno[1]/text()"/></recid>
+                            <label><xsl:value-of select="$eventLabel"/></label>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <date><xsl:value-of select="local:formatDate(tei:date/@from)"/></date>
                             <displayType>from</displayType>
                             <display>start</display>
                             <position>start</position>
-                            <level>
-                                <xsl:value-of select="$level"/>
-                            </level>
-                            <id>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@from), '\.', '')"/>
-                            </id>
+                            <level><xsl:value-of select="$level"/></level>
+                            <id><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></id>
                         </nodes>
                     </xsl:when>
                 </xsl:choose>
@@ -706,9 +587,9 @@
     </xsl:template>
     <xsl:template name="links">
         <xsl:for-each select="//tei:event">
-            <xsl:variable name="eventTitle" select="string-join(tei:desc, ' ')"/>
+            <xsl:variable name="eventTitle" select="normalize-space(string-join(tei:desc, ' '))"/>
             <xsl:for-each select="tei:label">
-                <xsl:variable name="eventLabel" select="descendant::text()"/>
+                <xsl:variable name="eventLabel" select="normalize-space(descendant::text())"/>
                 <xsl:variable name="eventType" select="@type"/>
                 <xsl:variable name="id"
                     select="concat((count(parent::tei:event/preceding-sibling::*) + 1), (count(parent::tei:event/preceding-sibling::*) + 1))"/>
@@ -716,50 +597,22 @@
                     <xsl:when test="tei:date[@type = 'circa'] or contains(tei:date, 'circa')">
                         <xsl:if test="tei:date[@notBefore] and tei:date[@notAfter]">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@notBefore), '\.', '')"
-                                    />
-                                </source>
-                                <target>
-                                    <xsl:value-of
-                                        select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"
-                                    />
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></source>
+                                <target><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>dashed</linkType>
                             </links>
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"
-                                    />
-                                </source>
-                                <target>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@notAfter), '\.', '')"
-                                    />
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"/></source>
+                                <target><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>dashed</linkType>
                             </links>
                             <xsl:if test="local:getFollowingID(.) != ''">
                                 <links>
-                                    <source>
-                                        <xsl:value-of
-                                            select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"
-                                        />
-                                    </source>
-                                    <target>
-                                        <xsl:value-of select="local:getFollowingID(.)"/>
-                                    </target>
-                                    <eventType>
-                                        <xsl:value-of select="$eventType"/>
-                                    </eventType>
+                                    <source><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"/></source>
+                                    <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                    <eventType><xsl:value-of select="$eventType"/></eventType>
                                     <linkType>solid</linkType>
                                 </links>
                             </xsl:if>
@@ -768,177 +621,105 @@
                     <xsl:when test="tei:date[@when]">
                         <xsl:if test="local:getFollowingID(.) != ''">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@when), '\.', '')"/>
-                                </source>
-                                <target>
-                                    <xsl:value-of select="local:getFollowingID(.)"/>
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@when), '\.', '')"/></source>
+                                <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>solid</linkType>
                             </links>
                         </xsl:if>
                     </xsl:when>
                     <xsl:when test="tei:date[@from] and tei:date[@to]">
                         <links>
-                            <source>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@from), '\.', '')"/>
-                            </source>
-                            <target>
-                                <xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"
-                                />
-                            </target>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
+                            <source><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></source>
+                            <target><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></target>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
                             <linkType>solid</linkType>
                         </links>
                         <xsl:if test="local:getFollowingID(.) != ''">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@to), '\.', '')"/>
-                                </source>
-                                <target>
-                                    <xsl:value-of select="local:getFollowingID(.)"/>
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></source>
+                                <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>solid</linkType>
                             </links>
                         </xsl:if>
                     </xsl:when>
                     <xsl:when test="tei:date[@notBefore] and tei:date[@notAfter]">
                         <links>
-                            <source>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notBefore), '\.', '')"/>
-                            </source>
-                            <target>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notAfter), '\.', '')"/>
-                            </target>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
+                            <source><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></source>
+                            <target><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></target>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
                             <linkType>dashed</linkType>
                         </links>
                         <xsl:if test="local:getFollowingID(.) != ''">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@notAfter), '\.', '')"
-                                    />
-                                </source>
-                                <target>
-                                    <xsl:value-of select="local:getFollowingID(.)"/>
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></source>
+                                <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>solid</linkType>
                             </links>
                         </xsl:if>
                     </xsl:when>
                     <xsl:when test="tei:date[@notBefore] and tei:date[@to]">
                         <links>
-                            <source>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notBefore), '\.', '')"/>
-                            </source>
-                            <target>
-                                <xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"
-                                />
-                            </target>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
+                            <source><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></source>
+                            <target><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></target>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
                             <linkType>dashed</linkType>
                         </links>
                         <xsl:if test="local:getFollowingID(.) != ''">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@to), '\.', '')"/>
-                                </source>
-                                <target>
-                                    <xsl:value-of select="local:getFollowingID(.)"/>
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></source>
+                                <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>solid</linkType>
                             </links>
                         </xsl:if>
                     </xsl:when>
                     <xsl:when test="tei:date[@notAfter] and tei:date[@from]">
                         <links>
-                            <source>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@notAfter), '\.', '')"/>
-                            </source>
-                            <target>
-                                <xsl:value-of
-                                    select="replace(generate-id(tei:date/@from), '\.', '')"/>
-                            </target>
-                            <eventType>
-                                <xsl:value-of select="$eventType"/>
-                            </eventType>
+                            <source><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></source>
+                            <target><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></target>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
                             <linkType>dashed</linkType>
                         </links>
                         <xsl:if test="local:getFollowingID(.) != ''">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@from), '\.', '')"/>
-                                </source>
-                                <target>
-                                    <xsl:value-of select="local:getFollowingID(.)"/>
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></source>
+                                <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>solid</linkType>
                             </links>
                         </xsl:if>
                     </xsl:when>
                     <xsl:when test="tei:date[@notAfter]">
+                        <links>
+                            <source><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></source>
+                            <target><xsl:value-of select="concat(replace(generate-id(tei:date/@notAfter), '\.', ''),'c')"/></target>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <linkType>fade-left</linkType>
+                        </links>
                         <xsl:if test="local:getFollowingID(.) != ''">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@notAfter), '\.', '')"
-                                    />
-                                </source>
-                                <target>
-                                    <xsl:value-of select="local:getFollowingID(.)"/>
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></source>
+                                <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>solid</linkType>
                             </links>
                         </xsl:if>
                     </xsl:when>
                     <xsl:when test="tei:date[@notBefore]">
+                        <links>
+                            <source><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></source>
+                            <target><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''),'c')"/></target>
+                            <eventType><xsl:value-of select="$eventType"/></eventType>
+                            <linkType>fade-right</linkType>
+                        </links>
                         <xsl:if test="local:getFollowingID(.) != ''">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@notBefore), '\.', '')"
-                                    />
-                                </source>
-                                <target>
-                                    <xsl:value-of select="local:getFollowingID(.)"/>
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></source>
+                                <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>solid</linkType>
                             </links>
                         </xsl:if>
@@ -946,16 +727,9 @@
                     <xsl:when test="tei:date[@to]">
                         <xsl:if test="local:getFollowingID(.) != ''">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@to), '\.', '')"/>
-                                </source>
-                                <target>
-                                    <xsl:value-of select="local:getFollowingID(.)"/>
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></source>
+                                <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>solid</linkType>
                             </links>
                         </xsl:if>
@@ -963,16 +737,9 @@
                     <xsl:when test="tei:date[@from]">
                         <xsl:if test="local:getFollowingID(.) != ''">
                             <links>
-                                <source>
-                                    <xsl:value-of
-                                        select="replace(generate-id(tei:date/@from), '\.', '')"/>
-                                </source>
-                                <target>
-                                    <xsl:value-of select="local:getFollowingID(.)"/>
-                                </target>
-                                <eventType>
-                                    <xsl:value-of select="$eventType"/>
-                                </eventType>
+                                <source><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></source>
+                                <target><xsl:value-of select="local:getFollowingID(.)"/></target>
+                                <eventType><xsl:value-of select="$eventType"/></eventType>
                                 <linkType>solid</linkType>
                             </links>
                         </xsl:if>
@@ -1016,7 +783,7 @@
             </xsl:when>
             <xsl:when test="count(./child::*) = 0">
                 <xsl:text>"</xsl:text><xsl:value-of select="name()"/>" : "<xsl:apply-templates
-                    select="."/><xsl:text>"</xsl:text>
+                    select="normalize-space(.)"/><xsl:text>"</xsl:text>
                 <xsl:if test="count(following-sibling::*) &gt; 0">, </xsl:if>
             </xsl:when>
         </xsl:choose>
