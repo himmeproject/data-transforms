@@ -1,7 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<xsl:stylesheet version="2.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
+<xsl:stylesheet version="2.0" 
+    xmlns="http://www.w3.org/1999/xhtml"
+    xmlns:xsl="http://www.w3.org/1999/XSL/Transform"
     xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:t="http://www.tei-c.org/ns/1.0"
-    xmlns:local="http://syriaca.org/ns" xmlns:json="http://json.org/" exclude-result-prefixes="xs t xsl local">
+    xmlns:local="http://syriaca.org/ns" xmlns:html="http://www.w3.org/1999/xhtml" xmlns:json="http://json.org/" 
+    exclude-result-prefixes="xs t xsl local html json">
     
     <!-- =================================================================== -->
     <!-- Generate HTML files from TEI for HIMME records                      -->
@@ -17,8 +20,7 @@
     <xsl:import href="helper-functions.xsl"/>
     <xsl:import href="generateJSON.xsl"/>
     
-    
-    <xsl:output name="html" encoding="UTF-8" method="xhtml" indent="yes" omit-xml-declaration="yes" xml:space="preserve"/>
+    <xsl:output name="html" encoding="UTF-8" method="xhtml" indent="yes" omit-xml-declaration="yes" xml:space="preserve" xpath-default-namespace="http://www.w3.org/1999/xhtml"/>
     <xsl:output name="json" method="text" encoding="UTF-8" indent="yes" omit-xml-declaration="yes"/>
     
     <!-- parameters -->
@@ -89,8 +91,8 @@
                 <div id="main">
                     <div id="main-content-area">
                     <!-- H1 -->
-                    <h1><xsl:value-of select="descendant::t:title[@level='a']"/></h1>
-                    <p class="URI-display">
+                    <h1><xsl:value-of select="descendant::t:title[1]"/></h1>
+                        <p class="URI-display noIndex">
                         <small><span class="srp-label">URI: </span>
                             <span id="syriaca-id"><xsl:value-of select="descendant::t:publicationStmt/t:idno[@type='URI'][1]"/></span>
                         </small>
@@ -290,13 +292,6 @@
         <xsl:if test="t:event">
             <div id="eventVis">
                 <h3>Event Timeline</h3>
-                <div id="tools">
-                    <div><button id="zoom-in" class="btn">+</button> <button id="zoom-out" class="btn"> - </button></div>
-                    <div><span class="dot event"></span> <span class="text">Event</span></div>
-                    <div><span class="dot composition"></span> <span class="text">Composition</span></div>
-                    <div><span class="dot manuscript"></span> <span class="text">Manuscript</span></div>
-                    <div><span class="dot edition"></span> <span class="text">Edition</span></div>
-                </div>
                 <div id="vis"/>
                 <script src="/resources/js/d3.v4.min.js" type="text/javascript"/>
                 <script src="/resources/js/d3-selection-multi.v1.js"/>
@@ -304,13 +299,13 @@
                 
                 <script type="text/javascript">
                     <xsl:text>var jsonFile = '</xsl:text><xsl:value-of select="concat('json/', concat($saveFileName,'.json'))"/><xsl:text>';</xsl:text>
-                    <xsl:text>var height = </xsl:text>
-                    <xsl:choose>
+                    <xsl:text>var height = </xsl:text><xsl:value-of select="(count(//t:event) * 50) + 200 "/>
+                    <!--<xsl:choose>
                         <xsl:when test="count(//t:event) lt 4">200</xsl:when>
                         <xsl:when test="count(//t:event) lt 10">400</xsl:when>
                         <xsl:when test="count(//t:event) lt 15">600</xsl:when>
                         <xsl:otherwise>800</xsl:otherwise>
-                    </xsl:choose><xsl:text>;</xsl:text>
+                    </xsl:choose>--><xsl:text>;</xsl:text>
                     <![CDATA[
                     //Load data
                     d3.json(jsonFile, function (error, graph) {
@@ -370,9 +365,9 @@
         </xsl:variable>
         <xsl:variable name="title">
             <xsl:choose>
-                <xsl:when test="/descendant-or-self::*[@source='headword']"><xsl:value-of select="/descendant-or-self::*[@source='headword']//text()"/></xsl:when>
-                <xsl:when test="/descendant::t:title[@level='a']"><xsl:value-of select="/descendant::t:title[@level='a']"/></xsl:when>
-                <xsl:otherwise><xsl:value-of select="/descendant::t:title[1]"/></xsl:otherwise>
+                <xsl:when test="descendant-or-self::*[@source='headword']"><xsl:value-of select="descendant-or-self::*[@source='headword']//text()"/></xsl:when>
+                <xsl:when test="descendant::t:title[@level='a']"><xsl:value-of select="descendant::t:title[@level='a']"/></xsl:when>
+                <xsl:otherwise><xsl:value-of select="descendant::t:title[1]"/></xsl:otherwise>
             </xsl:choose>
         </xsl:variable>
         <xsl:variable name="desc">
@@ -506,7 +501,7 @@
         <xsl:if test="descendant::t:note[@type='abstract']">
             <meta name="description" content="{normalize-space(string-join(descendant::t:note[@type='abstract']//text(),''))}"/>
         </xsl:if>
-        <title><xsl:value-of select="descendant::t:title[@level='a']"/></title>
+        <title><xsl:value-of select="descendant::t:teiHeader/descendant::t:title[1]"/></title>
     </xsl:template>
     
     <!-- Metadata used by staticSearch -->
@@ -516,15 +511,15 @@
             <xsl:when test="descendant::t:body/t:listEvent">
                 <meta name="Document type" class="staticSearch.desc" content="Practice"/>
             </xsl:when>
-            <xsl:when test="descendant::t:body/listPlace">
+            <xsl:when test="descendant::t:body/t:listPlace">
                 <meta name="Document type" class="staticSearch.desc" content="Place"/>
             </xsl:when>
-            <xsl:when test="descendant::t:body/listPerson">
+            <xsl:when test="descendant::t:body/t:listPerson">
                 <meta name="Document type" class="staticSearch.desc" content="Person"/>
             </xsl:when>
         </xsl:choose>
         <!-- Record Title -->
-        <meta name="docTitle" class="staticSearch.docTitle" content="{descendant::t:title[@level='a']}"/>
+        <meta name="docTitle" class="staticSearch.docTitle" content="{//t:teiHeader/descendant::t:title[1]}"/>
     </xsl:template>
     
     <!-- Site navbar -->
@@ -550,7 +545,7 @@
     <!-- Sources -->
     <xsl:template name="sources">
         <!-- Sources -->
-        <div id="sources">
+        <div id="sources" class="noIndex">
             <h3>Sources</h3>
             <!-- WORK in progress
             <xsl:choose>
@@ -577,8 +572,8 @@
     
     <!-- See also template -->
     <xsl:template name="link-icons-list">
-        <xsl:variable name="title" select="descendant::t:title[@level='a']"/>
-        <div id="see-also" class="well">
+        <xsl:variable name="title" select="descendant::t:title[1]"/>
+        <div id="see-also" class="well noIndex">
             <h3>See Also</h3>
             <ul>
                 <xsl:for-each select="//t:idno[contains(.,'csc.org.il')]">

@@ -120,13 +120,26 @@
     <xsl:function name="local:getFollowingID">
         <xsl:param name="label"/>
         <xsl:variable name="following" select="$label/following-sibling::*[1]"/>
+        <xsl:variable name="currentEnd">
+            <xsl:choose>
+                <xsl:when test="local:endDate($label/tei:date) != ''">
+                    <xsl:value-of select="tokenize(local:endDate($label/tei:date), '-')[last()]"/>
+                </xsl:when>
+                <xsl:otherwise>0</xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
+        <xsl:variable name="nextStart">
+            <xsl:choose>
+                <xsl:when test="local:startDate($following/tei:date) != ''">
+                    <xsl:value-of select="tokenize(local:startDate($following/tei:date), '-')[last()]"/>
+                </xsl:when>
+                <xsl:otherwise>0</xsl:otherwise>
+            </xsl:choose>
+        </xsl:variable>
         <xsl:choose>
-            <xsl:when
-                test="$following/tei:date[@type = 'circa'] or contains($following/tei:date, 'circa')">
+            <xsl:when test="$following/tei:date[@type = 'circa'] or contains($following/tei:date, 'circa')">
                 <xsl:if test="$following/tei:date[@notBefore] and $following/tei:date[@notAfter]">
-                    <xsl:value-of
-                        select="concat(replace(generate-id($following/tei:date/@notBefore), '\.', ''), 'c')"
-                    />
+                    <xsl:value-of select="concat(replace(generate-id($following/tei:date/@notBefore), '\.', ''), 'c')"/>
                 </xsl:if>
             </xsl:when>
             <xsl:when test="$following/tei:date[@notBefore] and $following/tei:date[@to]">
@@ -139,15 +152,34 @@
                 <xsl:value-of select="replace(generate-id($following/tei:date/@when), '\.', '')"/>
             </xsl:when>
             <xsl:when test="$following/tei:date[@from] and $following/tei:date[@to]">
-                <xsl:value-of select="replace(generate-id($following/tei:date/@from), '\.', '')"/>
+                <xsl:choose>
+                    <xsl:when test="$nextStart lt $currentEnd">
+                        <xsl:value-of select="replace(generate-id($following/tei:date/@to), '\.', '')"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="replace(generate-id($following/tei:date/@from), '\.', '')"/>        
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:when>
             <xsl:when test="$following/tei:date[@notBefore] and $label/tei:date[@notAfter]">
-                <xsl:value-of
-                    select="replace(generate-id($following/tei:date/@notBefore), '\.', '')"/>
+                <xsl:choose>
+                    <xsl:when test="$nextStart lt $currentEnd">
+                        <xsl:value-of select="replace(generate-id($following/tei:date/@notAfter), '\.', '')"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="replace(generate-id($following/tei:date/@notBefore), '\.', '')"/>        
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:when>
             <xsl:when test="$following/tei:date[@notBefore] and $label/tei:date[@to]">
-                <xsl:value-of
-                    select="replace(generate-id($following/tei:date/@notBefore), '\.', '')"/>
+                <xsl:choose>
+                    <xsl:when test="$nextStart lt $currentEnd">
+                        <xsl:value-of select="replace(generate-id($following/tei:date/@to), '\.', '')"/>
+                    </xsl:when>
+                    <xsl:otherwise>
+                        <xsl:value-of select="replace(generate-id($following/tei:date/@notBefore), '\.', '')"/>        
+                    </xsl:otherwise>
+                </xsl:choose>
             </xsl:when>
             <xsl:when test="$following/tei:date[@notAfter] and $label/tei:date[@from]">
                 <xsl:value-of select="replace(generate-id($following/tei:date/@from), '\.', '')"/>
@@ -194,7 +226,7 @@
     <!-- Format nodes -->
     <xsl:template name="nodes">
         <xsl:for-each select="//tei:event">
-<!--            <xsl:variable name="elevel" select="(position() * position()) + 10"/>-->
+            <xsl:sort select="local:startDate(tei:label[@type='composition']/tei:date)" order="descending"/>
             <xsl:variable name="elevel" select="(position() * 10)"/>
             <xsl:variable name="eventTitle" select="normalize-space(string-join(tei:desc, ' '))"/>
             <xsl:for-each select="tei:label">
@@ -208,7 +240,8 @@
                             </xsl:for-each>
                         </xsl:when>
                         <xsl:otherwise>
-                            <xsl:value-of select="concat(concat(upper-case(substring(@type, 1, 1)), substring(@type, 2)), .)"/>
+                            <xsl:variable name="type" select="concat(upper-case(substring(@type, 1, 1)), substring(@type, 2))"/>
+                            <xsl:value-of select="concat($type, ': ', normalize-space(.))"/>
                         </xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
@@ -264,18 +297,18 @@
                                 <xsl:when test="$prevStart != 0">
                                     <xsl:choose>
                                         <xsl:when test="xs:integer($start) eq xs:integer($prevStart)">
-                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                            <xsl:value-of select="$elevel + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="((xs:integer($start) - xs:integer($prevStart)) &lt; 50)">
-                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                            <xsl:value-of select="$elevel + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="$prevEnd != 0">
                                             <xsl:choose>
                                                 <xsl:when test="xs:integer($start) eq xs:integer($prevEnd)">
-                                                    <xsl:value-of select="$elevel + position() + 2"/>
+                                                    <xsl:value-of select="$elevel + (position() * 2)"/>
                                                 </xsl:when>
                                                 <xsl:when test="((xs:integer($start) - xs:integer($prevEnd)) &lt; 50)">
-                                                    <xsl:value-of select="$elevel + position() + 2"/>
+                                                    <xsl:value-of select="$elevel + (position() * 2)"/>
                                                 </xsl:when>
                                                 <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
                                             </xsl:choose>
@@ -286,10 +319,10 @@
                                 <xsl:when test="$prevEnd != 0">
                                     <xsl:choose>
                                         <xsl:when test="xs:integer($start) eq xs:integer($prevEnd)">
-                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                            <xsl:value-of select="$elevel + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="((xs:integer($start) - xs:integer($prevEnd)) &lt; 50)">
-                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                            <xsl:value-of select="$elevel + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
                                     </xsl:choose>
@@ -302,10 +335,10 @@
                                 <xsl:when test="$prevStart != 0">
                                     <xsl:choose>
                                         <xsl:when test="xs:integer($end) eq xs:integer($prevStart)">
-                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                            <xsl:value-of select="$elevel + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="((xs:integer($end) - xs:integer($prevStart)) &lt; 50)">
-                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                            <xsl:value-of select="$elevel + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
                                     </xsl:choose>
@@ -313,10 +346,10 @@
                                 <xsl:when test="$prevEnd != 0">
                                     <xsl:choose>
                                         <xsl:when test="xs:integer($end) eq xs:integer($prevEnd)">
-                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                            <xsl:value-of select="$elevel + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="((xs:integer($end) - xs:integer($prevEnd)) &lt; 50)">
-                                            <xsl:value-of select="$elevel + position() + 2"/>
+                                            <xsl:value-of select="$elevel + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
                                     </xsl:choose>
@@ -591,6 +624,44 @@
             <xsl:for-each select="tei:label">
                 <xsl:variable name="eventLabel" select="normalize-space(descendant::text())"/>
                 <xsl:variable name="eventType" select="@type"/>
+                <xsl:variable name="start">
+                    <xsl:choose>
+                        <xsl:when test="local:startDate(tei:date) != ''">
+                            <xsl:value-of select="tokenize(local:startDate(tei:date), '-')[last()]"/>
+                        </xsl:when>
+                        <xsl:otherwise>0</xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="end">
+                    <xsl:choose>
+                        <xsl:when test="local:endDate(tei:date) != ''">
+                            <xsl:value-of select="tokenize(local:endDate(tei:date), '-')[last()]"/>
+                        </xsl:when>
+                        <xsl:otherwise>0</xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="current">
+                    <xsl:choose>
+                        <xsl:when test="$end != 0"><xsl:value-of select="$end"/></xsl:when>
+                        <xsl:otherwise><xsl:value-of select="$start"/></xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="nextStart">
+                    <xsl:choose>
+                        <xsl:when test="local:startDate(following-sibling::*[1]/tei:date) != ''">
+                            <xsl:value-of select="tokenize(local:startDate(following-sibling::*[1]/tei:date), '-')[last()]"/>
+                        </xsl:when>
+                        <xsl:otherwise>0</xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
+                <xsl:variable name="nextEnd">
+                    <xsl:choose>
+                        <xsl:when test="local:endDate(following-sibling::*[1]/tei:date) != ''">
+                            <xsl:value-of select="tokenize(local:endDate(following-sibling::*[1]/tei:date), '-')[last()]"/>
+                        </xsl:when>
+                        <xsl:otherwise>0</xsl:otherwise>
+                    </xsl:choose>
+                </xsl:variable>
                 <xsl:variable name="id"
                     select="concat((count(parent::tei:event/preceding-sibling::*) + 1), (count(parent::tei:event/preceding-sibling::*) + 1))"/>
                 <xsl:choose>
@@ -613,7 +684,10 @@
                                     <source><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"/></source>
                                     <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                     <eventType><xsl:value-of select="$eventType"/></eventType>
-                                    <linkType>solid</linkType>
+                                    <xsl:choose>
+                                        <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                        <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                    </xsl:choose>
                                 </links>
                             </xsl:if>
                         </xsl:if>
@@ -624,7 +698,10 @@
                                 <source><xsl:value-of select="replace(generate-id(tei:date/@when), '\.', '')"/></source>
                                 <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <linkType>solid</linkType>
+                                <xsl:choose>
+                                    <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                    <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                </xsl:choose>
                             </links>
                         </xsl:if>
                     </xsl:when>
@@ -640,7 +717,10 @@
                                 <source><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></source>
                                 <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <linkType>solid</linkType>
+                                <xsl:choose>
+                                    <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                    <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                </xsl:choose>
                             </links>
                         </xsl:if>
                     </xsl:when>
@@ -656,7 +736,10 @@
                                 <source><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></source>
                                 <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <linkType>solid</linkType>
+                                <xsl:choose>
+                                    <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                    <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                </xsl:choose>
                             </links>
                         </xsl:if>
                     </xsl:when>
@@ -672,7 +755,10 @@
                                 <source><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></source>
                                 <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <linkType>solid</linkType>
+                                <xsl:choose>
+                                    <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                    <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                </xsl:choose>
                             </links>
                         </xsl:if>
                     </xsl:when>
@@ -688,7 +774,10 @@
                                 <source><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></source>
                                 <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <linkType>solid</linkType>
+                                <xsl:choose>
+                                    <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                    <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                </xsl:choose>
                             </links>
                         </xsl:if>
                     </xsl:when>
@@ -704,7 +793,10 @@
                                 <source><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></source>
                                 <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <linkType>solid</linkType>
+                                <xsl:choose>
+                                    <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                    <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                </xsl:choose>
                             </links>
                         </xsl:if>
                     </xsl:when>
@@ -720,7 +812,10 @@
                                 <source><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></source>
                                 <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <linkType>solid</linkType>
+                                <xsl:choose>
+                                    <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                    <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                </xsl:choose>
                             </links>
                         </xsl:if>
                     </xsl:when>
@@ -730,7 +825,10 @@
                                 <source><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></source>
                                 <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <linkType>solid</linkType>
+                                <xsl:choose>
+                                    <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                    <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                </xsl:choose>
                             </links>
                         </xsl:if>
                     </xsl:when>
@@ -740,7 +838,10 @@
                                 <source><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></source>
                                 <target><xsl:value-of select="local:getFollowingID(.)"/></target>
                                 <eventType><xsl:value-of select="$eventType"/></eventType>
-                                <linkType>solid</linkType>
+                                <xsl:choose>
+                                    <xsl:when test="$nextStart lt $current"><linkType>solidNoArrow</linkType></xsl:when>
+                                    <xsl:otherwise><linkType>solid</linkType></xsl:otherwise>
+                                </xsl:choose>
                             </links>
                         </xsl:if>
                     </xsl:when>
