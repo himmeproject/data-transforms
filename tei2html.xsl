@@ -291,7 +291,7 @@
     <xsl:template name="events">
         <xsl:if test="t:event">
             <div id="eventVis">
-                <h3>Event Timeline</h3>
+                <h3>Temporal Data</h3>
                 <div id="vis"/>
                 <script src="/resources/js/d3.v4.min.js" type="text/javascript"/>
                 <script src="/resources/js/d3-selection-multi.v1.js"/>

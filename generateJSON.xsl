@@ -269,8 +269,10 @@
     <xsl:template name="nodes">
         <xsl:for-each select="//tei:event">
             <xsl:sort select="local:startDate(tei:label[@type='composition']/tei:date)" order="descending"/>
-            <xsl:variable name="elevel" select="(position() * 10)"/>
-            <xsl:variable name="eventTitle" select="normalize-space(string-join(tei:desc, ' '))"/>
+            <xsl:variable name="eventLevel" select="(position() * 10)"/>
+            <xsl:variable name="eventTitle">
+                <xsl:apply-templates select="tei:desc" mode="html4json"/>
+            </xsl:variable>
             <xsl:variable name="eventID" select="generate-id(.)"/>
             <xsl:for-each select="tei:label">
                 <xsl:variable name="eventLabel">
@@ -337,43 +339,43 @@
                 </xsl:variable>
                 <xsl:variable name="level">
                     <xsl:choose>
-                        <xsl:when test="not(preceding-sibling::tei:label)"><xsl:value-of select="$elevel"/></xsl:when>
+                        <xsl:when test="not(preceding-sibling::tei:label)"><xsl:value-of select="position()"/></xsl:when>
                         <xsl:when test="$start != 0">
                             <xsl:choose>
                                 <xsl:when test="$prevStart != 0">
                                     <xsl:choose>
                                         <xsl:when test="xs:integer($start) eq xs:integer($prevStart)">
-                                            <xsl:value-of select="$elevel + (position() * 2)"/>
+                                            <xsl:value-of select="position() + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="((xs:integer($start) - xs:integer($prevStart)) &lt; 50)">
-                                            <xsl:value-of select="$elevel + (position() * 2)"/>
+                                            <xsl:value-of select="position() + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="$prevEnd != 0">
                                             <xsl:choose>
                                                 <xsl:when test="xs:integer($start) eq xs:integer($prevEnd)">
-                                                    <xsl:value-of select="$elevel + (position() * 2)"/>
+                                                    <xsl:value-of select="position() + (position() * 2)"/>
                                                 </xsl:when>
                                                 <xsl:when test="((xs:integer($start) - xs:integer($prevEnd)) &lt; 50)">
-                                                    <xsl:value-of select="$elevel + (position() * 2)"/>
+                                                    <xsl:value-of select="position() + (position() * 2)"/>
                                                 </xsl:when>
-                                                <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                                <xsl:otherwise><xsl:value-of select="position()"/></xsl:otherwise>
                                             </xsl:choose>
                                         </xsl:when>
-                                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                        <xsl:otherwise><xsl:value-of select="position()"/></xsl:otherwise>
                                     </xsl:choose>
                                 </xsl:when>
                                 <xsl:when test="$prevEnd != 0">
                                     <xsl:choose>
                                         <xsl:when test="xs:integer($start) eq xs:integer($prevEnd)">
-                                            <xsl:value-of select="$elevel + (position() * 2)"/>
+                                            <xsl:value-of select="$eventLevel + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="((xs:integer($start) - xs:integer($prevEnd)) &lt; 50)">
-                                            <xsl:value-of select="$elevel + (position() * 2)"/>
+                                            <xsl:value-of select="$eventLevel + (position() * 2)"/>
                                         </xsl:when>
-                                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                        <xsl:otherwise><xsl:value-of select="$eventLevel"/></xsl:otherwise>
                                     </xsl:choose>
                                 </xsl:when>
-                                <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                <xsl:otherwise><xsl:value-of select="position()"/></xsl:otherwise>
                             </xsl:choose>
                         </xsl:when>
                         <xsl:when test="$end != 0">
@@ -381,31 +383,32 @@
                                 <xsl:when test="$prevStart != 0">
                                     <xsl:choose>
                                         <xsl:when test="xs:integer($end) eq xs:integer($prevStart)">
-                                            <xsl:value-of select="$elevel + (position() * 2)"/>
+                                            <xsl:value-of select="position() + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="((xs:integer($end) - xs:integer($prevStart)) &lt; 50)">
-                                            <xsl:value-of select="$elevel + (position() * 2)"/>
+                                            <xsl:value-of select="position() + (position() * 2)"/>
                                         </xsl:when>
-                                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                        <xsl:otherwise><xsl:value-of select="position()"/></xsl:otherwise>
                                     </xsl:choose>
                                 </xsl:when>
                                 <xsl:when test="$prevEnd != 0">
                                     <xsl:choose>
                                         <xsl:when test="xs:integer($end) eq xs:integer($prevEnd)">
-                                            <xsl:value-of select="$elevel + (position() * 2)"/>
+                                            <xsl:value-of select="position() + (position() * 2)"/>
                                         </xsl:when>
                                         <xsl:when test="((xs:integer($end) - xs:integer($prevEnd)) &lt; 50)">
-                                            <xsl:value-of select="$elevel + (position() * 2)"/>
+                                            <xsl:value-of select="position() + (position() * 2)"/>
                                         </xsl:when>
-                                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                        <xsl:otherwise><xsl:value-of select="position()"/></xsl:otherwise>
                                     </xsl:choose>
                                 </xsl:when>
-                                <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                                <xsl:otherwise><xsl:value-of select="position()"/></xsl:otherwise>
                             </xsl:choose>
                         </xsl:when>
-                        <xsl:otherwise><xsl:value-of select="$elevel"/></xsl:otherwise>
+                        <xsl:otherwise><xsl:value-of select="position()"/></xsl:otherwise>
                     </xsl:choose>
                 </xsl:variable>
+                <xsl:variable name="elevel" select="($eventLevel + $level)"/>
                 <xsl:choose>
                     <xsl:when test="tei:date[@type = 'circa'] or contains(tei:date, 'circa')">
                         <xsl:choose>
@@ -434,6 +437,7 @@
                                     <display>none</display>
                                     <position>start</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@when), '\.', '')"/></id>
                                 </nodes>
@@ -457,6 +461,7 @@
                                     <display>point</display>
                                     <position>center</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="concat(replace(generate-id(tei:date/@when), '\.', ''), 'c')"/></id>
                                 </nodes>
@@ -484,6 +489,7 @@
                                     <display>none</display>
                                     <position>end</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="concat(replace(generate-id(tei:date/@nwhen), '\.', ''), 'e')"/></id>
                                 </nodes>
@@ -498,9 +504,10 @@
                                     <startDate><xsl:value-of select="local:formatDate(tei:date/@from)"/></startDate>
                                     <endDate><xsl:value-of select="local:formatDate(tei:date/@to)"/></endDate>
                                     <displayType>circa</displayType>
-                                    <display>start</display>
+                                    <display>none</display>
                                     <position>start</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></id>
                                 </nodes>
@@ -518,9 +525,10 @@
                                     <startDate><xsl:value-of select="local:formatDate(tei:date/@from)"/></startDate>
                                     <endDate><xsl:value-of select="local:formatDate(tei:date/@to)"/></endDate>
                                     <displayType>circa</displayType>
-                                    <display>none</display>
+                                    <display>point</display>
                                     <position>center</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="concat(replace(generate-id(tei:date/@from), '\.', ''), 'c')"/></id>
                                 </nodes>
@@ -533,9 +541,10 @@
                                     <startDate><xsl:value-of select="local:formatDate(tei:date/@from)"/></startDate>
                                     <endDate><xsl:value-of select="local:formatDate(tei:date/@to)"/></endDate>
                                     <displayType>circa</displayType>
-                                    <display>end</display>
+                                    <display>none</display>
                                     <position>end</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></id>
                                 </nodes>
@@ -553,6 +562,7 @@
                                     <display>none</display>
                                     <position>start</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></id>
                                 </nodes>
@@ -573,6 +583,7 @@
                                     <display>point</display>
                                     <position>center</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"/></id>
                                 </nodes>
@@ -588,6 +599,7 @@
                                     <display>none</display>
                                     <position>end</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                                 </nodes>
@@ -605,6 +617,7 @@
                                     <display>none</display>
                                     <position>start</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></id>
                                 </nodes>
@@ -622,9 +635,10 @@
                                     <startDate><xsl:value-of select="local:formatDate(tei:date/@notBefore)"/></startDate>
                                     <endDate><xsl:value-of select="local:formatDate(tei:date/@to)"/></endDate>
                                     <displayType>circa</displayType>
-                                    <display>none</display>
+                                    <display>point</display>
                                     <position>center</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''), 'c')"/></id>
                                 </nodes>
@@ -637,9 +651,10 @@
                                     <startDate><xsl:value-of select="local:formatDate(tei:date/@notBefore)"/></startDate>
                                     <endDate><xsl:value-of select="local:formatDate(tei:date/@to)"/></endDate>
                                     <displayType>circa</displayType>
-                                    <display>end</display>
+                                    <display>none</display>
                                     <position>end</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></id>
                                 </nodes>
@@ -654,9 +669,10 @@
                                     <startDate><xsl:value-of select="local:formatDate(tei:date/@from)"/></startDate>
                                     <endDate><xsl:value-of select="local:formatDate(tei:date/@notAfter)"/></endDate>
                                     <displayType>circa</displayType>
-                                    <display>start</display>
+                                    <display>none</display>
                                     <position>start</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></id>
                                 </nodes>
@@ -674,9 +690,10 @@
                                     <startDate><xsl:value-of select="local:formatDate(tei:date/@from)"/></startDate>
                                     <endDate><xsl:value-of select="local:formatDate(tei:date/@notAfter)"/></endDate>
                                     <displayType>circa</displayType>
-                                    <display>none</display>
+                                    <display>point</display>
                                     <position>center</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="concat(replace(generate-id(tei:date/@from), '\.', ''), 'c')"/></id>
                                 </nodes>
@@ -692,6 +709,7 @@
                                     <display>none</display>
                                     <position>end</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                                 </nodes>
@@ -718,6 +736,7 @@
                                     <display>none</display>
                                     <position>start</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="concat(replace(generate-id(tei:date/@notAfter), '\.', ''),'c')"/></id>
                                 </nodes>
@@ -737,6 +756,7 @@
                                     <display>end</display>
                                     <position>end</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                                 </nodes>
@@ -756,6 +776,7 @@
                                     <display>start</display>
                                     <position>start</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/>
                                     </id>
                                 </nodes>
@@ -777,6 +798,7 @@
                                     <display>none</display>
                                     <position>end</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''),'c')"/></id>
                                 </nodes>
@@ -794,6 +816,7 @@
                                     <display>end</display>
                                     <position>end</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></id>
                                 </nodes>
@@ -811,6 +834,7 @@
                                     <display>start</display>
                                     <position>start</position>
                                     <level><xsl:value-of select="$level"/></level>
+                                    <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                                     <eventID><xsl:value-of select="$eventID"/></eventID>
                                     <id><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></id>
                                 </nodes>
@@ -830,6 +854,7 @@
                             <display>point</display>
                             <position>start</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@when), '\.', '')"/></id>
                         </nodes>
@@ -847,6 +872,7 @@
                             <display>start</display>
                             <position>start</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></id>
                         </nodes>
@@ -862,6 +888,7 @@
                             <display>end</display>
                             <position>end</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></id>
                         </nodes>
@@ -879,6 +906,7 @@
                             <display>start</display>
                             <position>start</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></id>
                         </nodes>
@@ -894,6 +922,7 @@
                             <display>end</display>
                             <position>end</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                         </nodes>
@@ -911,6 +940,7 @@
                             <display>none</display>
                             <position>start</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/></id>
                         </nodes>
@@ -926,6 +956,7 @@
                             <display>end</display>
                             <position>end</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></id>
                         </nodes>
@@ -943,6 +974,7 @@
                             <display>start</display>
                             <position>start</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></id>
                         </nodes>
@@ -958,6 +990,7 @@
                             <display>none</display>
                             <position>end</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                         </nodes>
@@ -982,6 +1015,7 @@
                             <display>none</display>
                             <position>start</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="concat(replace(generate-id(tei:date/@notAfter), '\.', ''),'c')"/></id>
                         </nodes>
@@ -999,6 +1033,7 @@
                             <display>end</display>
                             <position>end</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@notAfter), '\.', '')"/></id>
                         </nodes>
@@ -1018,6 +1053,7 @@
                             <display>start</display>
                             <position>start</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@notBefore), '\.', '')"/>
                             </id>
                         </nodes>
@@ -1039,6 +1075,7 @@
                             <display>none</display>
                             <position>end</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="concat(replace(generate-id(tei:date/@notBefore), '\.', ''),'c')"/></id>
                         </nodes>
@@ -1056,6 +1093,7 @@
                             <display>end</display>
                             <position>end</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@to), '\.', '')"/></id>
                         </nodes>
@@ -1073,6 +1111,7 @@
                             <display>start</display>
                             <position>start</position>
                             <level><xsl:value-of select="$level"/></level>
+                            <eventLevel><xsl:value-of select="$elevel"/></eventLevel>
                             <eventID><xsl:value-of select="$eventID"/></eventID>
                             <id><xsl:value-of select="replace(generate-id(tei:date/@from), '\.', '')"/></id>
                         </nodes>
@@ -1130,7 +1169,6 @@
                     select="concat((count(parent::tei:event/preceding-sibling::*) + 1), (count(parent::tei:event/preceding-sibling::*) + 1))"/>
                 <xsl:choose>
                     <xsl:when test="tei:date[@type = 'circa'] or contains(tei:date, 'circa')">
-                        
                         <xsl:choose>
                             <xsl:when test="tei:date[@when]">
                                 <links>
@@ -1524,6 +1562,29 @@
         </xsl:for-each>
     </xsl:template>
 
+    <!-- Output links for HTML display of JSON data -->
+    <xsl:template match="tei:persName" mode="html4json">
+        <xsl:choose>
+            <xsl:when test="@ref">
+                <xsl:text> &lt;a href='</xsl:text><xsl:value-of select="@ref"/><xsl:text>'&gt;</xsl:text>
+                <xsl:apply-templates mode="html4json"/>
+                <xsl:text>&lt;/a&gt; </xsl:text>
+            </xsl:when>
+            <xsl:otherwise>&#160;<xsl:apply-templates mode="html4json"/></xsl:otherwise>
+        </xsl:choose>
+    </xsl:template>
+    <xsl:template match="tei:event" mode="html4json">
+        <xsl:apply-templates mode="html4json"/>
+        <!-- Add code to generate footnotes -->
+        <xsl:if test="@source"></xsl:if>
+    </xsl:template>
+    <xsl:template match="text()" mode="html4json">
+        <xsl:value-of select="normalize-space(.)"/>
+    </xsl:template>
+    <xsl:template match="*" mode="html4json">
+        <xsl:apply-templates mode="html4json"/>
+    </xsl:template>
+    
     <!-- JSON -->
     <xsl:template match="/" mode="json">
         <xsl:text>{</xsl:text>
