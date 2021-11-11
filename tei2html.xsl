@@ -292,6 +292,26 @@
         <xsl:if test="t:event">
             <div id="eventVis">
                 <h3>Temporal Data</h3>
+                <div>
+                    <form id="filterForm">
+                        <input id="filterStart" name="start" placeholder="Year"/> to <input id="filterEnd" name="end"  placeholder="Year"/>
+                        <select name="filterMenu" id="filterMenu">
+                            <option value="event">Event</option>
+                            <option value="composition">Composition</option>
+                            <option value="manuscript">Manuscript</option>
+                            <option value="edition">Edition</option>
+                        </select>
+                        <button type="button" class="filter-btn">Filter</button>
+                        Sort: 
+                        <select name="sortMenu" id="sortMenu">
+                            <option value="event">Event</option>
+                            <option value="composition">Composition</option>
+                            <option value="manuscript">Manuscript</option>
+                            <option value="edition">Edition</option>
+                        </select>
+                        <button type="button" class="reset" id="resetGraph">Reset</button>
+                    </form>
+                </div>
                 <div id="vis"/>
                 <script src="/resources/js/d3.v4.min.js" type="text/javascript"/>
                 <script src="/resources/js/d3-selection-multi.v1.js"/>
